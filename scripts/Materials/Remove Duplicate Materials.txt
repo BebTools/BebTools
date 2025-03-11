@@ -1,0 +1,29 @@
+Beb.Tools - Deduplicate Materials and Images
+============================================
+
+Description:
+This script removes duplicate materials and
+images from the scene, reassigning objects
+and nodes to primary versions based on name.
+
+Usage:
+1. Import objects with materials into your scene.
+2. Open the N-Panel (press N).
+3. Go to the "Beb.Tools" tab.
+4. Select this script from the list.
+5. Click "Run" to run the script.
+
+What It Does:
+- Finds duplicate materials (e.g., apple.001) and images (e.g., apple.png.001).
+- Reassigns objects and nodes to primary versions (e.g., apple).
+- Deletes duplicate materials and images.
+
+Notes:
+- Identifies duplicates by .XXX suffix (e.g., .001).
+- Only processes mesh objects for materials.
+- Affects image texture nodes in all materials.
+- Use Undo to revert if needed.
+
+Output:
+- See console message:
+  "Material and image deduplication complete!"

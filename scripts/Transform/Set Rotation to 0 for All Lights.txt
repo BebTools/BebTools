@@ -1,0 +1,28 @@
+Beb.Tools - Zero All Light Rotations Script
+===========================================
+
+Description:
+This script sets the rotation of all light
+objects in the scene to (0, 0, 0) degrees
+on the X, Y, and Z axes.
+
+Usage:
+1. Add light objects (e.g., Point, Sun) to your scene.
+2. Open the N-Panel (press N).
+3. Go to the "Beb.Tools" tab.
+4. Select this script from the list.
+5. Click "Run" to run the script.
+
+What It Does:
+- Iterates through all light objects in the scene.
+- Sets each light object’s rotation to (0, 0, 0).
+
+Notes:
+- Only affects light objects.
+- Ignores non-light objects (e.g., cameras, meshes).
+- Only changes rotation; location and scale unchanged.
+- Use Undo to revert if needed.
+
+Output:
+- See console message:
+  "All light object rotations set to (0, 0, 0)!"

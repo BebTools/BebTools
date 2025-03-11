@@ -1,0 +1,28 @@
+Beb.Tools - Zero All Rotations Script
+=====================================
+
+Description:
+This script sets the rotation of all mesh
+objects in the scene to (0, 0, 0) degrees
+on the X, Y, and Z axes.
+
+Usage:
+1. Add mesh objects (e.g., cubes) to your scene.
+2. Open the N-Panel (press N).
+3. Go to the "Beb.Tools" tab.
+4. Select this script from the list.
+5. Click "Run" to run the script.
+
+What It Does:
+- Iterates through all mesh objects in the scene.
+- Sets each mesh object’s rotation to (0, 0, 0).
+
+Notes:
+- Only affects mesh objects.
+- Ignores non-mesh objects (e.g., lights, cameras).
+- Only changes rotation; location and scale unchanged.
+- Use Undo to revert if needed.
+
+Output:
+- See console message:
+  "All mesh object rotations set to (0, 0, 0)!"

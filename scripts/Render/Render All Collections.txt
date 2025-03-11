@@ -1,0 +1,29 @@
+Beb.Tools - Render Collections Script
+=====================================
+
+Description:
+This script renders each collection in the
+scene individually using the active camera,
+saving images to a user-selected directory.
+
+Usage:
+1. Add collections with objects to your scene.
+2. Open the N-Panel (press N).
+3. Go to the "Beb.Tools" tab.
+4. Select this script from the list.
+5. Click "Run" to open file browser and render.
+
+What It Does:
+- Opens a file browser to select output directory.
+- Hides all collections, unhides one at a time to render.
+- Saves each render as "[CollectionName].[format]".
+
+Notes:
+- Requires an active camera.
+- User sets transparency and format in file browser.
+- Excludes Scene Collection from individual renders.
+- Use Undo to revert scene state if needed.
+
+Output:
+- See console message:
+  "Rendered [N] collections to [directory]"

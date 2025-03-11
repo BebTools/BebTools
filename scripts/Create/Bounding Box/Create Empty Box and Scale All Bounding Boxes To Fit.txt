@@ -1,0 +1,31 @@
+Beb.Tools - Scale Empty Cubes to BBox Script
+============================================
+
+Description:
+This script adds a BBox_Scaler empty cube,
+scales all other empty cubes to fit inside it
+maintaining aspect ratios, and parents them
+to BBox_Scaler.
+
+Usage:
+1. Add empty cubes to your scene.
+2. Open the N-Panel (press N).
+3. Go to the "Beb.Tools" tab.
+4. Select this script from the list.
+5. Click "Run" to run the script.
+
+What It Does:
+- Adds a BBox_Scaler empty cube if not present.
+- Scales all other empty cubes to fit inside BBox_Scaler.
+- Maintains aspect ratios, maximizing size within bounds.
+- Parents scaled empty cubes to BBox_Scaler.
+
+Notes:
+- Skips if BBox_Scaler already exists.
+- Only scales empty cubes (not other empty types).
+- Ignores zero-scale empties to avoid errors.
+- Use Undo to revert if needed.
+
+Output:
+- See console message:
+  "All empty cubes scaled and parented to BBox_Scaler!"
