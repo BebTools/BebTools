@@ -1,11 +1,14 @@
 import bpy
 import os
-import requests
-import shutil
-from urllib.parse import unquote
 from bpy.types import Panel, UIList, Operator
 from bpy.props import StringProperty, CollectionProperty
 from .bebtools_utils import SCRIPTS_DIR, get_scripts, update_info_text
+
+import requests
+import shutil
+from urllib.parse import unquote
+import zipfile
+import tempfile
 
 class BEBTOOLS_UL_ScriptList(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -76,63 +79,80 @@ class BEBTOOLS_OT_OpenScriptsFolder(Operator):
 
 class BEBTOOLS_OT_ImportScript(Operator):
     bl_idname = "bebtools.import_script"
-    bl_label = "Import Script"
-    bl_description = "Import Python scripts and their instructions into /scripts/"
-    bl_options = {'REGISTER'}
+    bl_label = "Add Scripts from Folder"
+    bl_description = "Pick a folder to bring all scripts (.py, .txt, .zip) into Beb Tools"
 
-    filter_glob: StringProperty(default="*.py;*.txt", options={'HIDDEN'})
-    files: CollectionProperty(type=bpy.types.OperatorFileListElement)
     directory: StringProperty(subtype='DIR_PATH')
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+    def process_folder(self, folder_path, imported_files):
+        """Recursively process a folder for .py, .txt, and .zip files."""
+        for root, dirs, files in os.walk(folder_path):
+            for filename in files:
+                filepath = os.path.join(root, filename)
+                name, ext = os.path.splitext(filename)
+
+                if ext.lower() == '.zip':
+                    # Handle .zip files
+                    try:
+                        with tempfile.TemporaryDirectory() as temp_dir:
+                            with zipfile.ZipFile(filepath, 'r') as zip_ref:
+                                zip_ref.extractall(temp_dir)
+                            # Recursively process the unzipped contents
+                            self.process_folder(temp_dir, imported_files)
+                    except zipfile.BadZipFile:
+                        self.report({'WARNING'}, f"Skipped bad .zip file: {filename}")
+                    except Exception as e:
+                        self.report({'ERROR'}, f"Error with {filename}: {str(e)}")
+                        return False
+
+                elif ext.lower() in ('.py', '.txt'):
+                    # Handle .py and .txt files
+                    dest_path = os.path.join(SCRIPTS_DIR, filename)
+                    try:
+                        if os.path.exists(dest_path):
+                            os.remove(dest_path)  # Overwrite existing files
+                        shutil.copy2(filepath, dest_path)
+                        if ext.lower() == '.py':
+                            imported_files.add(name)  # Track unique script names
+                            # Ensure a .txt exists for each .py
+                            txt_path = os.path.join(SCRIPTS_DIR, f"{name}.txt")
+                            if not os.path.exists(txt_path):
+                                with open(txt_path, "w") as f:
+                                    f.write(f"Notes for {name}\n")
+                    except Exception as e:
+                        self.report({'ERROR'}, f"Couldn’t add {filename}: {str(e)}")
+                        return False
+        return True
+
     def execute(self, context):
         from .bebtools_utils import SCRIPTS_DIR
         wm = context.window_manager
-        imported = 0
-        skipped = 0
-        py_files = {}
-        txt_files = {}
-        for file in self.files:
-            filepath = os.path.join(self.directory, file.name)
-            filename, ext = os.path.splitext(file.name)
-            if ext.lower() == '.py':
-                py_files[filename] = filepath
-            elif ext.lower() == '.txt':
-                txt_files[filename] = filepath
-            else:
-                skipped += 1
-                print(f"Skipped non-.py/.txt file: {file.name}")
-        for py_name, py_path in py_files.items():
-            dest_py = os.path.join(SCRIPTS_DIR, f"{py_name}.py")
-            if os.path.exists(dest_py):
-                self.report({'WARNING'}, f"Script '{py_name}.py' already exists in /scripts/—skipped")
-                skipped += 1
-                continue
-            try:
-                import shutil
-                shutil.copy2(py_path, dest_py)
-                imported += 1
-                if py_name in txt_files:
-                    dest_txt = os.path.join(SCRIPTS_DIR, f"{py_name}.txt")
-                    shutil.copy2(txt_files[py_name], dest_txt)
-                else:
-                    with open(os.path.join(SCRIPTS_DIR, f"{py_name}.txt"), "w") as f:
-                        f.write(f"Instructions for {py_name}\n")
-            except Exception as e:
-                self.report({'ERROR'}, f"Error importing '{py_name}.py': {str(e)}")
-                return {'CANCELLED'}
-        for txt_name in txt_files:
-            if txt_name not in py_files:
-                skipped += 1
-                print(f"Skipped {txt_name}.txt—no matching .py file")
-        bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT', directory=SCRIPTS_DIR)
-        wm.bebtools_active_index = -1
-        update_info_text(context)
-        self.report({'INFO'}, f"Imported {imported} script(s), skipped {skipped} file(s)")
-        return {'FINISHED'}
+        imported_files = set()  # Track unique script names (without extensions)
+
+        if not os.path.isdir(self.directory):
+            self.report({'WARNING'}, "Please pick a folder!")
+            return {'CANCELLED'}
+
+        # Process the selected folder recursively
+        success = self.process_folder(self.directory, imported_files)
+
+        if not success:
+            return {'CANCELLED'}
+
+        if imported_files:
+            # Refresh the script list
+            bpy.ops.bebtools.init_scripts('INVOKE_DEFAULT', directory=SCRIPTS_DIR)
+            wm.bebtools_active_index = -1
+            update_info_text(context)
+            self.report({'INFO'}, f"Added {len(imported_files)} script(s) from your folder!")
+            return {'FINISHED'}
+        else:
+            self.report({'WARNING'}, "No scripts (.py, .txt, or .zip) found in the folder!")
+            return {'CANCELLED'}
 
 class BEBTOOLS_OT_FolderContextMenu(Operator):
     bl_idname = "bebtools.folder_context_menu"
@@ -288,6 +308,26 @@ class BEBTOOLS_OT_ImportBlobZip(Operator):
             self.report({'WARNING'}, "No files were downloaded")
             return {'CANCELLED'}
 
+class BEBTOOLS_OT_OpenDocs(Operator):
+    bl_idname = "bebtools.open_docs"
+    bl_label = "Docs"
+    bl_description = "Open the Beb Tools documentation in your browser"
+
+    def execute(self, context):
+        bpy.ops.wm.url_open(url="https://docs.beb.tools")
+        self.report({'INFO'}, "Opened the Beb Tools documentation!")
+        return {'FINISHED'}
+
+class BEBTOOLS_OT_OpenWebsite(Operator):
+    bl_idname = "bebtools.open_website"
+    bl_label = "Website"
+    bl_description = "Visit the Beb Tools website in your browser"
+
+    def execute(self, context):
+        bpy.ops.wm.url_open(url="https://beb.tools")
+        self.report({'INFO'}, "Opened the Beb Tools website!")
+        return {'FINISHED'}
+
 class BEBTOOLS_PT_Panel(Panel):
     bl_label = "Beb.Tools"
     bl_idname = "BEBTOOLS_PT_panel"
@@ -403,6 +443,23 @@ class BEBTOOLS_PT_QueuePanel(Panel):
         row.operator("bebtools.move_down", text="", icon="TRIA_DOWN_BAR")
         row.operator("bebtools.multi_run", text="Run All", icon="PLAY")
         row.operator("bebtools.clear_queue", text="", icon="X")
+
+class BEBTOOLS_PT_SupportPanel(Panel):
+    bl_label = "Support"
+    bl_idname = "BEBTOOLS_PT_support_panel"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Beb.Tools"
+    bl_options = {'DEFAULT_CLOSED'}  # Collapsed by default
+
+    def draw_header(self, context):
+        layout = self.layout
+        layout.label(text="", icon="HELP")
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("bebtools.open_docs", text="Docs", icon="DOCUMENTS")
+        layout.operator("bebtools.open_website", text="Website", icon="URL")
 
 class BEBTOOLS_OT_SearchScripts(Operator):
     bl_idname = "bebtools.search_scripts"
@@ -523,6 +580,7 @@ classes = (
     BEBTOOLS_PT_Panel,
     BEBTOOLS_PT_InfoPanel,
     BEBTOOLS_PT_QueuePanel,
+    BEBTOOLS_PT_SupportPanel,
     BEBTOOLS_OT_ScriptContextMenu,
     BEBTOOLS_OT_QueueContextMenu,
     BEBTOOLS_OT_NavigateBack,
@@ -534,4 +592,6 @@ classes = (
     BEBTOOLS_OT_SearchScripts,
     BEBTOOLS_OT_ClearSearch,
     BEBTOOLS_OT_ImportBlobZip,
+    BEBTOOLS_OT_OpenDocs,
+    BEBTOOLS_OT_OpenWebsite,
 )
