@@ -8,14 +8,14 @@ if lib_dir not in sys.path:
     sys.path.append(lib_dir)
 
 bl_info = {
-    "name": "Beb Tools",
+    "name": "Beb.Tools",
     "author": "Beb",
     "version": (1, 0),
     "blender": (4, 2, 0),
-    "location": "View3D > Sidebar > Beb Tools",
-    "description": "A collection of tools",
+    "location": "View3D > Sidebar > Beb.Tools",
+    "description": "The swiss army knife that lets you add and manage custom tools without needing to be a computer wizard.",
     "warning": "",
-    "doc_url": "",
+    "doc_url": "https://docs.beb.tools",
     "category": "Object",
 }
 
